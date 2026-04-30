@@ -1,0 +1,131 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #050b13;
+  --panel: #070f19;
+  --panel-elevated: #0e1723;
+  --panel-border: #132639;
+  --text-primary: #d9e0ea;
+  --text-secondary: #718297;
+  --accent: #02e600;
+  --accent-soft: #083013;
+}
+
+@theme inline {
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-inter), sans-serif;
+  background-image: radial-gradient(circle at 10% 10%, #09111d 0%, #050b13 45%, #040811 100%);
+}
+
+* {
+  border-color: var(--panel-border);
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  box-shadow: inset 0 0 0 1px rgba(2, 230, 0, 0.04);
+}
+
+.mono {
+  font-family: var(--font-jetbrains-mono), monospace;
+}
+
+.terminal-nav {
+  background: #040914;
+  border-bottom: 1px solid #12253a;
+}
+
+.terminal-side {
+  background: #030a14;
+  border-right: 1px solid #13263b;
+}
+
+.panel-title {
+  color: #aebbc9;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+
+.validation-status-bar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid #1a344c;
+  background: #0b1724;
+}
+
+.validation-status-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+  color: #c1cfdd;
+}
+
+.validation-chip {
+  border: 1px solid #2a4f70;
+  background: #0a1e31;
+  color: var(--accent);
+  padding: 2px 6px;
+  font-family: var(--font-jetbrains-mono), monospace;
+}
+
+.validation-primary-cta {
+  border: 1px solid #2fc76f;
+  background: #113222;
+  color: #b7ffcf;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 12px;
+  padding: 8px 12px;
+  min-width: 200px;
+}
+
+.validation-primary-cta:hover {
+  background: #17462f;
+}
+
+.validation-primary-cta:disabled {
+  opacity: 0.65;
+}
+
+.validation-primary-cta-success {
+  border-color: #2f6b96;
+  background: #11283a;
+  color: #95c6ed;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 2px;
+  background: #2b3036;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--accent);
+  cursor: pointer;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  border: none;
+  background: var(--accent);
+  cursor: pointer;
+}
