@@ -1,4 +1,5 @@
 import { CompanyId, CompanyModel } from "@/lib/types";
+import Link from "next/link";
 
 interface Props {
   companies: CompanyModel[];
@@ -32,6 +33,14 @@ export function CompanySwitcher({ companies, selectedId, onSelect }: Props) {
             </button>
           );
         })}
+      </div>
+      <div className="border-t border-[#112337] pt-3">
+        <Link
+          href="/china-gold-international"
+          className="block w-full text-left p-2.5 border border-[#1e415b] bg-[#0a1a2a] hover:border-[var(--accent)] text-sm text-[#c6d6e5]"
+        >
+          <div className="font-medium">中国黄金国际（子页面）</div>
+        </Link>
       </div>
       <div className="mt-auto pt-3 border-t border-[#112337]">
         <button className="w-full bg-[#26c46a] text-[#031015] text-xs font-semibold py-2">
