@@ -1,6 +1,20 @@
 export type CompanyId = "cnooc" | "zijin" | "moutai";
 export type Scenario = "bear" | "base" | "bull";
 
+export interface SimpleFormula {
+  revenue: string;
+  cost: string;
+  netProfit: string;
+  attributableProfit: string;
+}
+
+export interface ResultBreakdown {
+  revenue: number;
+  cost: number;
+  netProfit: number;
+  attributableProfit: number;
+}
+
 export interface VariableMeta {
   key: string;
   label: string;
@@ -11,6 +25,7 @@ export interface VariableMeta {
   tooltip: string;
   fiveYearAvg: number;
   fiveYearRange: [number, number];
+  isCore?: boolean;
 }
 
 export interface YearMetric {
@@ -20,6 +35,23 @@ export interface YearMetric {
   actualProfit: number;
   modelProfit: number;
   inputs: Record<string, number>;
+  factInputs?: Record<string, number>;
+  calibratedInputs?: Record<string, number>;
+  forecastEditable?: boolean;
+}
+
+export interface TableEditValueMap {
+  [periodKey: string]: Record<string, number | undefined>;
+}
+
+export type FactInputs = Record<string, number>;
+
+export type CalibratedParams = Record<string, number>;
+
+export interface PeriodData {
+  facts: FactInputs;
+  calibrated: CalibratedParams;
+  forecastEditable: boolean;
 }
 
 export interface CompanyModel {
@@ -27,6 +59,9 @@ export interface CompanyModel {
   name: string;
   ticker: string;
   formulaLatex: string;
+  simpleFormula?: SimpleFormula;
+  coreVariableKeys?: string[];
+  defaultBaseYear?: number;
   variables: VariableMeta[];
   scenarios: Record<Scenario, Record<string, number>>;
   history: YearMetric[];

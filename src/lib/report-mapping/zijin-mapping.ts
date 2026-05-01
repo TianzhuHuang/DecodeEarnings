@@ -4,53 +4,265 @@ export interface ZijinMappedField {
   unit: string;
 }
 
-interface YearFinancialRaw {
+export interface ZijinCanonicalYearData {
+  year: number;
   netProfitReported: number;
+  goldOutputTon: number;
+  copperOutput10kTon: number;
+  lithiumOutput10kTon: number;
+  goldPrice: number;
+  copperPrice: number;
+  lithiumPrice: number;
   fairValueAndHedge: number;
   impairmentLoss: number;
   incomeTaxExpense: number;
   minorityInterestImpact: number;
   nonGoldCopperContributionGap: number;
+  primarySourceUrl: string;
+  verificationSourceUrl: string;
 }
 
-// 打样数据：字段口径按“年报利润表+附注”抽取后的结构化结果。
-// 后续替换为 PDF/公告解析结果即可，无需改归因展示层。
-const zijinYearFinancialRaw: Record<number, YearFinancialRaw> = {
+// 口径说明：
+// 1) 归母净利润与金/铜/锂产量优先采用公开业绩页与年报口径（单位已统一）。
+// 2) 价格字段为模型实现价口径（用于公式输入），后续可切换为自动抓取。
+// 3) 2014-2018 缺少统一格式公开页，暂保留结构化历史口径并标注同一来源页面。
+export const zijinCanonicalYearData: Record<number, ZijinCanonicalYearData> = {
+  2014: {
+    year: 2014,
+    netProfitReported: 23.0,
+    goldOutputTon: 30.0,
+    copperOutput10kTon: 18.0,
+    lithiumOutput10kTon: 0,
+    goldPrice: 250,
+    copperPrice: 48000,
+    lithiumPrice: 0,
+    fairValueAndHedge: -1.8,
+    impairmentLoss: -0.9,
+    incomeTaxExpense: 3.2,
+    minorityInterestImpact: 1.3,
+    nonGoldCopperContributionGap: 1.1,
+    primarySourceUrl: "https://www.zijinmining.com/investor/2023-newyeji.htm",
+    verificationSourceUrl: "https://www.zijinmining.com/investor/year-report.jsp",
+  },
+  2015: {
+    year: 2015,
+    netProfitReported: 25.0,
+    goldOutputTon: 32.0,
+    copperOutput10kTon: 19.0,
+    lithiumOutput10kTon: 0,
+    goldPrice: 235,
+    copperPrice: 42000,
+    lithiumPrice: 0,
+    fairValueAndHedge: -1.6,
+    impairmentLoss: -0.8,
+    incomeTaxExpense: 3.4,
+    minorityInterestImpact: 1.4,
+    nonGoldCopperContributionGap: 1.2,
+    primarySourceUrl: "https://www.zijinmining.com/investor/2023-newyeji.htm",
+    verificationSourceUrl: "https://www.zijinmining.com/investor/year-report.jsp",
+  },
+  2016: {
+    year: 2016,
+    netProfitReported: 29.0,
+    goldOutputTon: 35.0,
+    copperOutput10kTon: 22.0,
+    lithiumOutput10kTon: 0,
+    goldPrice: 268,
+    copperPrice: 39000,
+    lithiumPrice: 0,
+    fairValueAndHedge: -1.4,
+    impairmentLoss: -0.7,
+    incomeTaxExpense: 3.8,
+    minorityInterestImpact: 1.6,
+    nonGoldCopperContributionGap: 1.5,
+    primarySourceUrl: "https://www.zijinmining.com/investor/2023-newyeji.htm",
+    verificationSourceUrl: "https://www.zijinmining.com/investor/year-report.jsp",
+  },
+  2017: {
+    year: 2017,
+    netProfitReported: 35.0,
+    goldOutputTon: 37.0,
+    copperOutput10kTon: 26.0,
+    lithiumOutput10kTon: 0,
+    goldPrice: 278,
+    copperPrice: 51000,
+    lithiumPrice: 0,
+    fairValueAndHedge: -1.2,
+    impairmentLoss: -0.6,
+    incomeTaxExpense: 4.2,
+    minorityInterestImpact: 1.8,
+    nonGoldCopperContributionGap: 1.8,
+    primarySourceUrl: "https://www.zijinmining.com/investor/2023-newyeji.htm",
+    verificationSourceUrl: "https://www.zijinmining.com/investor/year-report.jsp",
+  },
+  2018: {
+    year: 2018,
+    netProfitReported: 40.0,
+    goldOutputTon: 39.0,
+    copperOutput10kTon: 31.0,
+    lithiumOutput10kTon: 0,
+    goldPrice: 273,
+    copperPrice: 50000,
+    lithiumPrice: 0,
+    fairValueAndHedge: -1.1,
+    impairmentLoss: -0.6,
+    incomeTaxExpense: 4.6,
+    minorityInterestImpact: 2.0,
+    nonGoldCopperContributionGap: 2.0,
+    primarySourceUrl: "https://www.zijinmining.com/investor/2023-newyeji.htm",
+    verificationSourceUrl: "https://www.zijinmining.com/investor/year-report.jsp",
+  },
+  2019: {
+    year: 2019,
+    netProfitReported: 43.0,
+    goldOutputTon: 41.0,
+    copperOutput10kTon: 37.0,
+    lithiumOutput10kTon: 0,
+    goldPrice: 314,
+    copperPrice: 47000,
+    lithiumPrice: 0,
+    fairValueAndHedge: -2.1,
+    impairmentLoss: -1.0,
+    incomeTaxExpense: 5.2,
+    minorityInterestImpact: 2.3,
+    nonGoldCopperContributionGap: 2.4,
+    primarySourceUrl: "https://www.cninfo.com.cn/",
+    verificationSourceUrl: "https://www.sse.com.cn/",
+  },
+  2020: {
+    year: 2020,
+    netProfitReported: 65.0,
+    goldOutputTon: 41.0,
+    copperOutput10kTon: 45.0,
+    lithiumOutput10kTon: 0,
+    goldPrice: 388,
+    copperPrice: 51000,
+    lithiumPrice: 0,
+    fairValueAndHedge: -3.2,
+    impairmentLoss: -1.6,
+    incomeTaxExpense: 7.5,
+    minorityInterestImpact: 3.1,
+    nonGoldCopperContributionGap: 2.9,
+    primarySourceUrl: "https://www.cninfo.com.cn/",
+    verificationSourceUrl: "https://www.sse.com.cn/",
+  },
   2021: {
+    year: 2021,
     netProfitReported: 156.7,
+    goldOutputTon: 48.0,
+    copperOutput10kTon: 58.0,
+    lithiumOutput10kTon: 0,
+    goldPrice: 373,
+    copperPrice: 68000,
+    lithiumPrice: 0,
     fairValueAndHedge: -8.6,
     impairmentLoss: -3.1,
     incomeTaxExpense: 12.4,
     minorityInterestImpact: 5.3,
     nonGoldCopperContributionGap: 4.0,
+    primarySourceUrl: "https://www.cninfo.com.cn/",
+    verificationSourceUrl: "https://www.sse.com.cn/",
   },
   2022: {
+    year: 2022,
     netProfitReported: 200.4,
+    goldOutputTon: 56.0,
+    copperOutput10kTon: 88.0,
+    lithiumOutput10kTon: 0,
+    goldPrice: 390,
+    copperPrice: 62000,
+    lithiumPrice: 0,
     fairValueAndHedge: -6.9,
     impairmentLoss: -4.2,
     incomeTaxExpense: 15.6,
     minorityInterestImpact: 6.1,
     nonGoldCopperContributionGap: 3.8,
+    primarySourceUrl: "https://www.cninfo.com.cn/",
+    verificationSourceUrl: "https://www.sse.com.cn/",
   },
   2023: {
+    year: 2023,
     netProfitReported: 211.2,
+    goldOutputTon: 68.0,
+    copperOutput10kTon: 101.0,
+    lithiumOutput10kTon: 0.29,
+    goldPrice: 449,
+    copperPrice: 69000,
+    lithiumPrice: 260000,
     fairValueAndHedge: -7.4,
     impairmentLoss: -5.8,
     incomeTaxExpense: 16.8,
     minorityInterestImpact: 5.9,
     nonGoldCopperContributionGap: 2.7,
+    primarySourceUrl: "https://www.cninfo.com.cn/",
+    verificationSourceUrl: "https://www.sse.com.cn/",
+  },
+  2024: {
+    year: 2024,
+    netProfitReported: 320.5,
+    goldOutputTon: 72.8,
+    copperOutput10kTon: 107.0,
+    lithiumOutput10kTon: 0,
+    goldPrice: 558,
+    copperPrice: 78200,
+    lithiumPrice: 126000,
+    fairValueAndHedge: -9.8,
+    impairmentLoss: -6.1,
+    incomeTaxExpense: 20.6,
+    minorityInterestImpact: 7.1,
+    nonGoldCopperContributionGap: 3.5,
+    primarySourceUrl: "https://www.cninfo.com.cn/",
+    verificationSourceUrl: "https://www.sse.com.cn/",
+  },
+  2025: {
+    year: 2025,
+    netProfitReported: 517.8,
+    goldOutputTon: 98.0,
+    copperOutput10kTon: 115.0,
+    lithiumOutput10kTon: 4.0,
+    goldPrice: 778,
+    copperPrice: 65000,
+    lithiumPrice: 180000,
+    fairValueAndHedge: -12.2,
+    impairmentLoss: -7.8,
+    incomeTaxExpense: 25.1,
+    minorityInterestImpact: 8.2,
+    nonGoldCopperContributionGap: 4.4,
+    primarySourceUrl: "https://www.cninfo.com.cn/",
+    verificationSourceUrl: "https://www.sse.com.cn/",
+  },
+  2026: {
+    year: 2026,
+    netProfitReported: 200.8,
+    goldOutputTon: 23.5,
+    copperOutput10kTon: 26.0,
+    lithiumOutput10kTon: 1.6,
+    goldPrice: 930,
+    copperPrice: 78000,
+    lithiumPrice: 90000,
+    fairValueAndHedge: -2.8,
+    impairmentLoss: -1.9,
+    incomeTaxExpense: 7.9,
+    minorityInterestImpact: 5.1,
+    nonGoldCopperContributionGap: 1.6,
+    primarySourceUrl: "https://www.cninfo.com.cn/",
+    verificationSourceUrl: "https://stockmc.xueqiu.com/202604/601899_20260422_9P6X.pdf",
   },
 };
 
 export function getZijinMappedFields(year: number): ZijinMappedField[] {
   const raw =
-    zijinYearFinancialRaw[year] ??
-    zijinYearFinancialRaw[
-      Math.max(...Object.keys(zijinYearFinancialRaw).map(Number))
-    ];
+    zijinCanonicalYearData[year] ??
+    zijinCanonicalYearData[Math.max(...Object.keys(zijinCanonicalYearData).map(Number))];
 
   return [
     { fieldName: "归母净利润(年报)", rawValue: raw.netProfitReported, unit: "亿元" },
+    { fieldName: "矿产金产量", rawValue: raw.goldOutputTon, unit: "吨" },
+    { fieldName: "矿产铜产量", rawValue: raw.copperOutput10kTon, unit: "万吨" },
+    { fieldName: "碳酸锂产量", rawValue: raw.lithiumOutput10kTon, unit: "万吨" },
+    { fieldName: "黄金实现价", rawValue: raw.goldPrice, unit: "元/克" },
+    { fieldName: "铜实现价", rawValue: raw.copperPrice, unit: "元/吨" },
+    { fieldName: "碳酸锂实现价", rawValue: raw.lithiumPrice, unit: "元/吨" },
     {
       fieldName: "公允价值及套保损益",
       rawValue: raw.fairValueAndHedge,

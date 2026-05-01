@@ -120,6 +120,9 @@ export async function buildAnnualAttribution(
 
   const source = await fetchZijinAnnualReportSource(input.year);
   const mapped = getZijinMappedFields(input.year);
+  const mappedProfit =
+    mapped.find((x) => x.fieldName === "归母净利润(年报)")?.rawValue ?? input.actualProfit;
+  const hasCaliberConflict = Math.abs(mappedProfit - input.actualProfit) > 5;
 
   const hedgeAndFx = round1(mapped.find((x) => x.fieldName === "公允价值及套保损益")?.rawValue ?? diff * 0.28);
   const impairment = round1(mapped.find((x) => x.fieldName === "资产减值损失")?.rawValue ?? diff * 0.22);
@@ -135,9 +138,24 @@ export async function buildAnnualAttribution(
   return {
     companyId: input.companyId,
     year: input.year,
-    source: `紫金矿业年报抓取与科目映射（抓取时间: ${source.extractedAt}）`,
+    source: `紫金矿业数据源（主源: ${source.primarySourceUrl}；校验: ${source.verificationSourceUrl}；抓取时间: ${source.extractedAt}）`,
     summary: `${input.year} 年模型相对年报${direction} ${Math.abs(diff).toFixed(1)} 亿元。主要偏差来自套保与汇率、公允价值/减值、税费与少数股东损益、以及非金铜业务波动。`,
     items: [
+      ...(hasCaliberConflict
+        ? [
+            {
+              id: "caliber-conflict",
+              title: "口径冲突提示",
+              impact: round1(mappedProfit - input.actualProfit),
+              evidence: {
+                fieldName: "归母净利润(年报口径对比)",
+                rawValue: `映射值 ${mappedProfit.toFixed(1)} 亿元 / 页面值 ${input.actualProfit.toFixed(1)} 亿元`,
+                formula: "冲突值 = 映射年报归母净利润 - 页面当前归母净利润",
+                sourceUrl: source.verificationSourceUrl,
+              },
+            },
+          ]
+        : []),
       {
         id: "hedge-fx",
         title: "套保与汇率影响",

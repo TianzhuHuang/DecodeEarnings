@@ -11,7 +11,7 @@ export function CompanySwitcher({ companies, selectedId, onSelect }: Props) {
     <aside className="terminal-side w-full lg:w-52 lg:min-h-[calc(100vh-40px)] p-4 flex flex-col gap-4">
       <div className="border-b border-[#112337] pb-3">
         <p className="mono text-[11px] uppercase tracking-wider text-[var(--accent)] font-semibold">
-          股票估值引擎
+          大宗商品终端
         </p>
         <p className="mono text-[10px] text-[var(--text-secondary)] mt-1">V2.4.0-STABLE</p>
       </div>

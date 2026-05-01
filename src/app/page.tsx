@@ -3,11 +3,16 @@
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FormulaPanel } from "@/components/formula/formula-panel";
-import { PredictionPanel } from "@/components/prediction/prediction-panel";
 import { CompanySwitcher } from "@/components/sidebar/company-switcher";
-import { calculateProfitByCompany } from "@/lib/calculators";
-import { companies, getCompanyById } from "@/lib/model-data";
-import { CompanyId } from "@/lib/types";
+import { calculateBreakdownByCompany } from "@/lib/calculators";
+import {
+  commodityCompanies,
+  editablePeriodKeys,
+  getCompanyById,
+  getCompanyDefaultInputs,
+} from "@/lib/model-data";
+import { CompanyId, TableEditValueMap } from "@/lib/types";
+type PriceUnitMode = "cny" | "usd";
 
 const ValidationPanel = dynamic(
   () =>
@@ -27,21 +32,48 @@ const ValidationPanel = dynamic(
 export default function Home() {
   const [selectedCompanyId, setSelectedCompanyId] = useState<CompanyId>("zijin");
   const selectedCompany = getCompanyById(selectedCompanyId);
-  const [inputs, setInputs] = useState<Record<string, number>>(
-    selectedCompany.scenarios.base,
+  const buildPeriodInputMap = (companyId: CompanyId): TableEditValueMap => {
+    const company = getCompanyById(companyId);
+    return company.history.reduce<TableEditValueMap>((acc, item) => {
+      acc[item.periodKey] = { ...item.inputs };
+      return acc;
+    }, {});
+  };
+  const baseDefaults = useMemo(
+    () => getCompanyDefaultInputs(selectedCompany),
+    [selectedCompany],
   );
-  const [selectedPeriodKey, setSelectedPeriodKey] = useState<string>(
-    selectedCompany.history[selectedCompany.history.length - 1].periodKey,
+  const [periodInputsMap, setPeriodInputsMap] = useState<TableEditValueMap>(
+    buildPeriodInputMap(selectedCompanyId),
+  );
+  const [draftPeriodInputsMap, setDraftPeriodInputsMap] = useState<TableEditValueMap>(
+    buildPeriodInputMap(selectedCompanyId),
+  );
+  const [priceUnitMode, setPriceUnitMode] = useState<PriceUnitMode>("cny");
+  const [selectedPeriodKey, setSelectedPeriodKey] = useState<string>("2026FY");
+  const selectedPeriodRecord =
+    selectedCompany.history.find((item) => item.periodKey === selectedPeriodKey) ??
+    selectedCompany.history[selectedCompany.history.length - 1];
+  const inputs = periodInputsMap[selectedPeriodKey] ?? baseDefaults.inputs;
+  const effectiveInputs = useMemo(
+    () =>
+      selectedPeriodRecord.forecastEditable
+        ? inputs
+        : { ...inputs, ...(selectedPeriodRecord.calibratedInputs ?? {}) },
+    [inputs, selectedPeriodRecord.calibratedInputs, selectedPeriodRecord.forecastEditable],
   );
 
-  const latestActual = selectedCompany.history[selectedCompany.history.length - 1].actualProfit;
-  const predictedProfit = useMemo(
-    () => calculateProfitByCompany(selectedCompany.id, inputs),
-    [selectedCompany.id, inputs],
+  const predictedBreakdown = useMemo(
+    () => calculateBreakdownByCompany(selectedCompany.id, effectiveInputs),
+    [effectiveInputs, selectedCompany.id],
   );
+  const predictedProfit = predictedBreakdown.attributableProfit;
+  const comparableActual =
+    selectedCompany.history.find((row) => row.year === baseDefaults.baseYear)?.actualProfit ??
+    selectedCompany.history[selectedCompany.history.length - 1].actualProfit;
   const yoyChange = useMemo(
-    () => ((predictedProfit - latestActual) / latestActual) * 100,
-    [predictedProfit, latestActual],
+    () => ((predictedProfit - comparableActual) / comparableActual) * 100,
+    [predictedProfit, comparableActual],
   );
   const confidence = useMemo(() => {
     const averageError =
@@ -52,49 +84,75 @@ export default function Home() {
     return Math.max(55, (1 - averageError) * 100);
   }, [selectedCompany.history]);
   const [activeVariableKey, setActiveVariableKey] = useState<string | null>(null);
-  const [animatedProfit, setAnimatedProfit] = useState(predictedProfit);
-  const previousProfitRef = useRef(predictedProfit);
+  const [animatedBreakdown, setAnimatedBreakdown] = useState(predictedBreakdown);
+  const previousBreakdownRef = useRef(predictedBreakdown);
+  const [isRecomputing, setIsRecomputing] = useState(false);
 
   useEffect(() => {
-    const from = previousProfitRef.current;
-    const to = predictedProfit;
+    const from = previousBreakdownRef.current;
+    const to = predictedBreakdown;
+    setIsRecomputing(true);
     const duration = 260;
     const start = performance.now();
     const id = requestAnimationFrame(function tick(now) {
       const progress = Math.min(1, (now - start) / duration);
-      const value = from + (to - from) * progress;
-      setAnimatedProfit(value);
-      if (progress < 1) requestAnimationFrame(tick);
+      setAnimatedBreakdown({
+        revenue: from.revenue + (to.revenue - from.revenue) * progress,
+        cost: from.cost + (to.cost - from.cost) * progress,
+        netProfit: from.netProfit + (to.netProfit - from.netProfit) * progress,
+        attributableProfit:
+          from.attributableProfit +
+          (to.attributableProfit - from.attributableProfit) * progress,
+      });
+      if (progress < 1) {
+        requestAnimationFrame(tick);
+      } else {
+        setIsRecomputing(false);
+      }
     });
-    previousProfitRef.current = to;
-    return () => cancelAnimationFrame(id);
-  }, [predictedProfit]);
+    previousBreakdownRef.current = to;
+    return () => {
+      cancelAnimationFrame(id);
+      setIsRecomputing(false);
+    };
+  }, [predictedBreakdown]);
 
   const switchCompany = (id: CompanyId) => {
     const next = getCompanyById(id);
+    const nextMap = buildPeriodInputMap(id);
     setSelectedCompanyId(id);
-    setInputs(next.scenarios.base);
-    setSelectedPeriodKey(next.history[next.history.length - 1].periodKey);
+    setPeriodInputsMap(nextMap);
+    setDraftPeriodInputsMap(nextMap);
+    setSelectedPeriodKey(
+      next.history.some((item) => item.periodKey === "2026FY")
+        ? "2026FY"
+        : (next.defaultBaseYear ?? 2025).toString(),
+    );
   };
-
-  const applyYearInputs = (periodKey: string) => {
-    setSelectedPeriodKey(periodKey);
-    const record = selectedCompany.history.find((item) => item.periodKey === periodKey);
-    if (record) {
-      setInputs(record.inputs);
-    }
+  const handleSubmitForecast = (periodKey: string) => {
+    setPeriodInputsMap((prev) => ({
+      ...prev,
+      [periodKey]: { ...(draftPeriodInputsMap[periodKey] ?? {}) },
+    }));
+  };
+  const hasDraftChanges = (periodKey: string) => {
+    const draft = draftPeriodInputsMap[periodKey] ?? {};
+    const committed = periodInputsMap[periodKey] ?? {};
+    return selectedCompany.variables.some(
+      (variable) => Number(draft[variable.key] ?? NaN) !== Number(committed[variable.key] ?? NaN),
+    );
   };
 
   return (
     <div className="min-h-screen">
       <header className="terminal-nav h-10 flex items-center justify-between px-3">
         <div className="flex items-center gap-5">
-          <div className="mono text-[var(--accent)] text-sm font-semibold">终端壹号</div>
+          <div className="mono text-[var(--accent)] text-sm font-semibold">Commodities Terminal</div>
           <nav className="mono text-[11px] text-[var(--text-secondary)] flex items-center gap-4">
-            <span>投资组合</span>
-            <span className="text-white border-b border-[var(--accent)] pb-0.5">市场</span>
-            <span>资讯</span>
-            <span>预测</span>
+            <span>大宗商品</span>
+            <span className="text-white border-b border-[var(--accent)] pb-0.5">利润预测</span>
+            <span>回测验证</span>
+            <span>情景推演</span>
           </nav>
         </div>
         <div className="mono text-[11px] text-[var(--text-secondary)]">输入股票代码...</div>
@@ -102,44 +160,103 @@ export default function Home() {
 
       <div className="grid grid-cols-1 xl:grid-cols-[208px_minmax(0,1fr)_320px] gap-0">
         <CompanySwitcher
-          companies={companies}
+          companies={commodityCompanies}
           selectedId={selectedCompanyId}
           onSelect={switchCompany}
         />
         <main className="p-4 md:p-5 space-y-4">
-          <FormulaPanel company={selectedCompany} activeVariableKey={activeVariableKey} />
+          <div className="flex justify-end">
+            <button
+              className="text-[11px] border border-[#2b4359] bg-[#0b1522] px-2 py-1 text-[#c7d6e4] hover:border-[var(--accent)]"
+              onClick={() =>
+                setPriceUnitMode((prev) => (prev === "cny" ? "usd" : "cny"))
+              }
+            >
+              ↔ 金属价格单位：{priceUnitMode === "cny" ? "人民币" : "美元"}
+            </button>
+          </div>
+          <FormulaPanel
+            company={selectedCompany}
+            activeVariableKey={activeVariableKey}
+            modifiedVariableKeys={selectedCompany.variables
+              .filter((variable) => variable.isCore)
+              .filter(
+                (variable) =>
+                  Number(inputs[variable.key] ?? 0) !==
+                  Number(baseDefaults.inputs[variable.key] ?? 0),
+              )
+              .map((variable) => variable.key)}
+          />
           <ValidationPanel
             company={selectedCompany}
             selectedPeriodKey={selectedPeriodKey}
             onSelectPeriod={setSelectedPeriodKey}
             predictedProfit={predictedProfit}
-          />
-          <PredictionPanel
-            variables={selectedCompany.variables}
-            history={selectedCompany.history}
-            selectedPeriodKey={selectedPeriodKey}
-            onSelectPeriod={applyYearInputs}
-            inputs={inputs}
-            onChangeInput={(key, value) =>
-              setInputs((prev) => ({ ...prev, [key]: Number.isNaN(value) ? 0 : value }))
+            periodInputsMap={draftPeriodInputsMap}
+            committedPeriodInputsMap={periodInputsMap}
+            editablePeriodKeys={editablePeriodKeys}
+            onChangeInput={(periodKey, variableKey, value) =>
+              setDraftPeriodInputsMap((prev) => ({
+                ...prev,
+                [periodKey]: {
+                  ...(prev[periodKey] ?? {}),
+                  [variableKey]: Number.isNaN(value) ? 0 : value,
+                },
+              }))
             }
+            onSubmitForecast={handleSubmitForecast}
+            hasPendingForecastChanges={hasDraftChanges(selectedPeriodKey)}
             onActivateVariable={setActiveVariableKey}
-            onReset={() => setInputs(selectedCompany.scenarios.base)}
+            priceUnitMode={priceUnitMode}
           />
         </main>
         <aside className="hidden xl:block p-4 md:p-5 pl-0">
           <div className="sticky top-14 space-y-4">
-            <section className="card p-5 border-[#1f3f59]">
+            <section className="card p-5 border-[#1f3f59] bg-[#081723]">
               <p className="mono text-xs uppercase tracking-[0.3em] text-[var(--text-secondary)]">
-                Real-Time Forecast
+                {selectedPeriodRecord.forecastEditable
+                  ? "Real-Time Forecast"
+                  : "Historical Recompute"}
               </p>
-              <p className="mono text-4xl mt-4 text-[var(--accent)] transition-all">
-                ¥{Math.round(animatedProfit * 100000000).toLocaleString()}
+              <div className="mt-2">
+                <button
+                  className="text-[11px] border border-[#2b4359] bg-[#0b1522] px-2 py-1 text-[#c7d6e4] hover:border-[var(--accent)]"
+                  onClick={() =>
+                    setPriceUnitMode((prev) => (prev === "cny" ? "usd" : "cny"))
+                  }
+                >
+                  ↔ 单位切换：{priceUnitMode === "cny" ? "人民币" : "美元"}
+                </button>
+              </div>
+              <p className="text-xs text-[var(--text-secondary)] mt-2">
+                当前期间：<span className="mono text-[#d5e5f3]">{selectedPeriodKey}</span>
               </p>
-              <p className="mt-2 text-sm text-[var(--text-secondary)]">归母净利润 (人民币)</p>
-              <div className="grid grid-cols-3 gap-2 mt-5">
-                <StatCard label="预测每股收益" value={`¥${(predictedProfit / 260).toFixed(2)}`} />
-                <StatCard label="同比变化" value={`${yoyChange > 0 ? "+" : ""}${yoyChange.toFixed(1)}%`} />
+              <div className="mt-3 border border-[#254761] bg-[#0a1b2a] p-3">
+                <div className="text-[12px] text-[#95b4cb]">归母净利润</div>
+                <div
+                  className={`mono text-[36px] leading-tight text-[var(--accent)] mt-1 transition-all duration-200 ${
+                    isRecomputing ? "scale-[1.03] brightness-125" : "scale-100"
+                  }`}
+                >
+                  ¥{animatedBreakdown.attributableProfit.toFixed(1)} 亿
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-2 mt-4">
+                <StatCard
+                  label="预测营收"
+                  value={`¥${animatedBreakdown.revenue.toFixed(1)} 亿`}
+                />
+                <StatCard
+                  label="预测成本"
+                  value={`¥${animatedBreakdown.cost.toFixed(1)} 亿`}
+                />
+                <StatCard
+                  label="预测净利润"
+                  value={`¥${animatedBreakdown.netProfit.toFixed(1)} 亿`}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2 mt-4">
+                <StatCard label="同比(基准2025)" value={`${yoyChange > 0 ? "+" : ""}${yoyChange.toFixed(1)}%`} />
                 <StatCard label="简化置信度" value={`${confidence.toFixed(1)}%`} />
               </div>
             </section>
